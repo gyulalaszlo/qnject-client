@@ -1,0 +1,124 @@
+module {{{ package }}} exposing (..)
+
+import Json.Decode
+import Json.Encode
+
+decodeString = Json.Decode.string
+decodeInt = Json.Decode.int
+decodeFloat = Json.Decode.float
+decodeList = Json.Decode.list
+
+
+encodeString = Json.Encode.string
+encodeInt = Json.Encode.int
+encodeFloat = Json.Encode.float
+encodeList = Json.Encode.list
+
+-- TYPES -----------------------------------------------------------------------
+
+{{#each types as |type typeName|~}}
+    {{!
+        STRUCT --------------------------
+    }}
+    {{#ifCond type.kind '==' "struct" }}
+
+type alias {{{ typeName }}} =
+    { {{#each fields as |fieldType fieldName|~}}
+        {{#unless @first}}    , {{/unless~}}
+        {{{ fieldName }}} : {{#isListType fieldType}}List {{{ listBaseType fieldType }}}{{else}}{{{fieldType}}}{{/isListType}}
+    {{/each}}
+    }
+
+    {{/ifCond}}
+    {{!
+        ALIAS --------------------------
+    }}
+    {{#ifCond type.kind '==' "string-encoded" }}
+
+type alias {{{ typeName }}} = {{{ type.underlying }}}
+
+    {{/ifCond}}
+{{/each}}
+
+-- DECODERS --------------------------------------------------------------------
+
+{{#each types as |type typeName|~}}
+    {{!
+        STRUCT --------------------------
+    }}
+    {{#ifCond type.kind '==' "struct" }}
+
+decode{{{ typeName }}} : Json.Decode.Decoder {{{ typeName }}}
+decode{{{ typeName }}} =
+    let
+        decoder {{#each fields as |_ fieldType|~}}{{{ fieldType }}} {{/each}}=
+            { {{#each fields as |fieldType fieldName|~}}
+                {{#unless @first}}            , {{/unless~}}
+                {{{ fieldName }}} = {{{ fieldName }}}
+            {{/each}}
+            }
+    in
+        {{jsonMapFn fields}} decoder
+            {{#each fields as |fieldType fieldName|}}
+                (Json.Decode.field "{{{ fieldName }}}" {{#isListType fieldType~}}
+                        (decodeList decode{{{ listBaseType fieldType }}}))
+                    {{else~}}
+                        decode{{{fieldType}}})
+                {{/isListType~}}
+            {{/each}}
+
+    {{/ifCond}}
+    {{!
+        ALIAS --------------------------
+    }}
+    {{#ifCond type.kind '==' "string-encoded" }}
+
+decode{{{ typeName }}} : Json.Decode.Decoder {{{ typeName }}}
+decode{{{ typeName }}} =
+    let
+        decoder s =
+            case {{{ type.decoder }}} s of
+                Ok val -> Json.Decode.succeed val
+                Err err -> Json.Decode.fail err
+    in
+        decodeString |> Json.Decode.andThen decoder
+
+    {{/ifCond}}
+{{/each}}
+
+
+
+
+-- ENCODERS --------------------------------------------------------------------
+
+{{#each types as |type typeName|~}}
+    {{!
+        STRUCT --------------------------
+    }}
+    {{#ifCond type.kind '==' "struct" }}
+
+encode{{{ typeName }}} : {{{ typeName }}} -> Json.Encode.Value
+encode{{{ typeName }}} val =
+    Json.Encode.object {{{ type.encoder }}}
+        [ {{#each fields as |fieldType fieldName|~}}
+            {{#unless @first}}        , {{/unless~}}
+            ("{{{ fieldName }}}", {{#isListType fieldType~}}
+                (Json.Encode.list <| List.map encode{{{ listBaseType fieldType }}} val.{{{fieldName}}}))
+                {{else~}}
+                encode{{{fieldType}}} val.{{{ fieldName }}})
+            {{/isListType~}}
+        {{/each}}
+        ]
+
+    {{/ifCond}}
+    {{!
+        ALIAS --------------------------
+    }}
+    {{#ifCond type.kind '==' "string-encoded" }}
+
+encode{{{ typeName }}} : {{{ typeName }}} -> Json.Encode.Value
+encode{{{ typeName }}} val =
+    Json.Encode.string <| {{{ type.encoder }}} val
+
+    {{/ifCond}}
+{{/each}}

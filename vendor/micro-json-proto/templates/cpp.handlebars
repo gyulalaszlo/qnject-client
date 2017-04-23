@@ -1,0 +1,79 @@
+#pragma once
+
+#include <string>
+#include <vector>
+#include "json.hpp"
+
+
+namespace {{{ package }}} {
+    using String = std::string;
+    using json = nlohmann::json;
+
+{{#*inline "fieldTypeName" ~}}
+    {{~#isListType .~}}
+        std::vector<{{ .. }}>
+    {{~else~}}
+        {{..}}
+    {{~/isListType~}}
+{{/inline}}
+
+
+//TYPES -----------------------------------------------------------------------
+{{#each types as |type typeName|~}}
+{{!
+    STRUCT --------------------------
+}}
+    {{#ifCond type.kind '==' "struct" }}
+        struct {{{ typeName }}} {
+        {{#each fields as |fieldType fieldName|}}
+            {{>fieldTypeName fieldType }} {{ fieldName }};
+        {{/each}}
+        };
+
+
+    {{/ifCond}}
+    {{!
+        ALIAS --------------------------
+    }}
+    {{#ifCond type.kind '==' "string-encoded" }}
+        using {{{ typeName }}} = {{{ type.underlying }}};
+
+    {{/ifCond}}
+{{/each}}
+
+}
+
+namespace {{{ package }}} {
+
+{{#each types as |type typeName|}}
+
+{{!
+    STRUCT --------------------------
+}}
+    {{#ifCond type.kind '==' "struct" }}
+
+    void to_json(json& j, const {{typeName}}& p) {
+        j = json{
+        {{~#each fields as |fieldType fieldName|~}}
+                { "{{ fieldName }}", p.{{ fieldName }} } {{~#unless @last}}, {{/unless}}
+        {{~/each~}}
+        };
+    }
+
+    void from_json(const json& j, {{typeName}}& p) {
+        {{#each fields as |fieldType fieldName|}}
+        p.{{ fieldName }} = j.at("{{fieldName}}").get<{{>fieldTypeName fieldType}}>();
+        {{/each}}
+    }
+
+    {{/ifCond}}
+    {{!
+        ALIAS --------------------------
+    }}
+    {{#ifCond type.kind '==' "string-encoded" }}
+        using {{{ typeName }}} = {{{ type.underlying }}};
+
+    {{/ifCond}}
+{{/each}}
+
+}

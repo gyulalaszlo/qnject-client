@@ -1,0 +1,11 @@
+{
+  "name": "qnject-client",
+  "version": "0.0.1",
+  "scripts": {
+    "uproto": "(cd vendor/micro-json-proto && node ./gen.js ../qnject-api/api-objects.uproto.yaml --lang elm --output ../../src/Qnject/Api/Objects.elm)",
+    "uproto-cpp": "(cd vendor/micro-json-proto && node ./gen.js ../qnject-api/api-objects.uproto.yaml --lang cpp --output /tmp/qnject-api-objects.h)"
+  },
+  "dependencies": {
+    "elm": "^0.18.0"
+  }
+}

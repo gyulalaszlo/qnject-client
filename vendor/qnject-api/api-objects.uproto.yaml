@@ -1,0 +1,72 @@
+types:
+  Address:
+    kind: string-encoded
+    underlying: $$Address.underlying
+    decoder: $$Address.decoder
+    encoder: $$Address.encoder
+
+  QClass:
+    kind: struct
+    fields:
+      name: String
+      superName: String
+
+
+  QClassInstance:
+    kind: struct
+    fields:
+      klass: QClass
+      objectName: String
+
+  QObjectSummary:
+    kind: struct
+    fields:
+      address: Address
+      self: QClassInstance
+      parent: QClassInstance
+
+  QObjectMethod:
+    kind: struct
+    fields:
+      name: String
+      signature: String
+      access: String
+
+  QObjectProperty:
+    kind: struct
+    fields:
+      name: String
+      source: String
+      value: String
+
+  QObjectDetails:
+    kind: struct
+    fields:
+      methods: [QObjectMethod]
+      properties: [QObjectProperty]
+
+
+# Language-specific tokens
+# ------------------------
+#
+# These are referenced by $$<TOKEN_NAME> anywhere in the types list, and
+# can be any Yaml value
+
+lang:
+
+  # ELM ---------------------------------
+
+  elm:
+    package: Qnject.Api.Objects
+    Address.underlying: String
+    Address.decoder: Ok
+    Address.encoder: identity
+
+
+  # C++ ---------------------------------
+
+  cpp:
+    package: qnject::api::objects
+    Address.underlying: uintptr_t
+    Address.decoder: qnject::addressFromString
+    Address.encoder: qnject::addressToString
