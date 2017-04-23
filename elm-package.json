@@ -5,6 +5,9 @@
     "license": "BSD3",
     "source-directories": [
         "src",
+        "vendor/elm-errors/src",
+        "vendor/elm-css-basics/src",
+        "vendor/elm-effects/src",
         "vendor/elm-bspview/src"
     ],
     "exposed-modules": [],
