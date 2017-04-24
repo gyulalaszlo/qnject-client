@@ -27,6 +27,7 @@ import Qnject.Qobject exposing (Address)
 import Qnject.ViewerEffects exposing (ViewerEffect)
 import Qnject.Viewers.QObjectOverview as QObjectOverview
 import Qnject.Viewers.QAppView as QAppView
+import Qnject.Viewers.QMenuView as QMenuView
 
 -- MODEL
 
@@ -34,10 +35,14 @@ import Qnject.Viewers.QAppView as QAppView
 type Model
     = QAppView QAppView.Model
     | QObjectOverview QObjectOverview.Model
+    | QMenuView QMenuView.Model
 
 
 appView : Model
 appView = QAppView QAppView.initialModel
+
+menuView : Model
+menuView = QMenuView QMenuView.initialModel
 
 objectView : Address -> Model
 objectView address =
@@ -49,11 +54,13 @@ labelFor : Model -> String
 labelFor model =
     case model of
         QAppView _ -> "QApplication"
+        QMenuView m -> "Menus"
         QObjectOverview m -> "QObject: " ++ m.address
 
 initialModels : List Model
 initialModels =
     [ appView
+    , menuView
     ]
 
 
@@ -77,6 +84,7 @@ type alias BspViewMsg = Bsp.Msg.Msg Msg Model
 type Msg
      = QnjectQAppViewMsg QAppView.Msg
      | QnjectQObjectOverviewMsg QObjectOverview.Msg
+     | QMenuViewMsg QMenuView.Msg
 
 
 
@@ -105,6 +113,10 @@ update msg model =
              let (cm, cc) = QObjectOverview.update msg m
              in (QObjectOverview cm, Cmd.map (model.msg << QnjectQObjectOverviewMsg) cc, Effects.none)
 
+        (QMenuViewMsg msg, QMenuView m) ->
+             let (cm, cc) = QMenuView.update msg m
+             in (QMenuView cm, Cmd.map (model.msg << QMenuViewMsg) cc, Effects.none)
+
         _ -> (local, Cmd.none, Effects.none)
 
 
@@ -126,6 +138,7 @@ css = """
 .Viewers-view {}
 """ ++ QObjectOverview.css
     ++ QAppView.css
+    ++ QMenuView.css
 
 
 
@@ -141,6 +154,10 @@ localView {local, shared, cursor, msg} =
             QAppView m ->
                 QAppView.view { connection = shared.connection, model = m}
                     |> Html.map QnjectQAppViewMsg
+
+            QMenuView m ->
+                QMenuView.view { connection = shared.connection, model = m}
+                    |> Html.map QMenuViewMsg
 
             QObjectOverview m ->
                 QObjectOverview.view { model = m, connection = shared.connection }

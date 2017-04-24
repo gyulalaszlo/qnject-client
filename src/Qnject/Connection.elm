@@ -7,14 +7,19 @@ import Error exposing (Error)
 import Http
 import Json.Decode
 import Task
-import Qnject.Qobject exposing (Address, QApp, QObjectDetails, QObjectSummary, decodeQApp, decodeQObjectDetails)
+import Qnject.Qobject exposing (Address, QApp, QMainMenus, QMenu, QObjectDetails, QObjectSummary, decodeQApp, decodeQMenus, decodeQObjectDetails)
+
+
+
 
 -- MODEL ------------------------
+
 
 type alias Model =
     { url: String
     , app: Maybe QApp
     , objects: Dict Address QObjectDetails
+    , mainMenu: Maybe QMainMenus
     , requestError: Maybe Http.Error
     }
 
@@ -24,6 +29,7 @@ default =
     { url = "http://localhost:8000"
     , app = Nothing
     , objects = Dict.empty
+    , mainMenu = Nothing
     , requestError = Nothing
     }
 
@@ -31,6 +37,17 @@ default =
 objectAt : Address -> Model -> Maybe QObjectDetails
 objectAt addr model =
     Dict.get addr model.objects
+
+
+getError : Model -> Maybe Http.Error
+getError model =
+    model.requestError
+
+hasError : Model -> Bool
+hasError model =
+    case model.requestError of
+        Nothing -> False
+        Just _ -> True
 
 
 -- MSG ------------------------
@@ -41,6 +58,9 @@ type Msg
 
     | AddObject Address
     | OnReloadObject Address (Result Http.Error QObjectDetails)
+
+    | ReloadMainMenu
+    | OnReloadMainMenu (Result Http.Error QMainMenus)
 
 
 
@@ -69,7 +89,10 @@ update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
     case msg of
         ReloadAll ->
-            (model, allWidgets OnReloadApp model)
+            ( model, Cmd.batch
+                [ allWidgets OnReloadApp model
+                , get decodeQMenus "/qwidgets/main-menu" OnReloadMainMenu model
+                ])
 
         OnReloadApp (Ok app) ->
             ({ model | app = Just app, requestError = Nothing }, Cmd.none)
@@ -87,3 +110,12 @@ update msg model =
         OnReloadObject a (Err err) ->
             ({ model | objects = Dict.remove a model.objects, requestError = Just err }, Cmd.none)
 
+
+        ReloadMainMenu ->
+            (model, get decodeQMenus "/qwidgets/main-menu" OnReloadMainMenu model)
+
+        OnReloadMainMenu (Ok app) ->
+            ({ model | mainMenu = Just app, requestError = Nothing }, Cmd.none)
+
+        OnReloadMainMenu (Err err) ->
+            ({ model | mainMenu = Nothing, requestError = Just err }, Cmd.none)

@@ -185,12 +185,6 @@ updateConnection m model =
 
 -- EFFECTS ---------------------------------------------------------------------
 
---updateFromEffects : Model -> Effects ViewerEffect -> (Model, Cmd Msg)
---updateFromEffects model effects =
---    effects
---        |> Effects.fold (onEffects model)
---        |> Maybe.withDefault (model, Cmd.none)
-
 onEffects : ViewerEffect -> Model -> (Model, Cmd Msg)
 onEffects effects model =
     case effects of
@@ -212,9 +206,18 @@ sendMsg msg a =
 -}
 view : Model -> Html Msg
 view model =
-    div
-        [ class "qnject-main-view" ]
+    let connection = model.bsp.shared.connection
+        selectionAttr = class <|
+            "qnject-main-view-" ++
+            if Connection.hasError connection
+                then "has-errors"
+                else "no-errors"
+    in div
+        [ class "qnject-main-view"
+        , selectionAttr
+        ]
         [ toolbarView model
+        , connectionErrorsView model.bsp.shared.connection
         , Html.map WrappedBspMsg <| Bsp.Root.view model.bsp
         ]
 
@@ -234,7 +237,7 @@ toolbarView model =
     let shared = model.bsp.shared
     in span
         [ class "client-toolbar-view" ]
-        [ case shared.requestError of
+        [ case Connection.getError shared.connection of
             Nothing -> text ""
             Just err ->
                 span [ class "request-errors" ]
@@ -248,6 +251,29 @@ toolbarView model =
 toolbarViewCss : String
 toolbarViewCss = """
 .toolbar-view {  }
+"""
+
+
+-- VIEW: errorsView
+
+
+
+{-| errors view
+-}
+connectionErrorsView : Connection.Model -> Html Msg
+connectionErrorsView connection =
+    case Connection.getError connection of
+        Nothing -> text ""
+        Just err ->
+            div [ class "errors-view" ]
+                [ text <| toString err
+                ]
+
+{-| CSS parts for errorsView
+-}
+errorsViewCss : String
+errorsViewCss = """
+.errors-view {  }
 """
 
 
@@ -311,6 +337,9 @@ code, pre { font-family: {{ fixed-font }}; }
 .toolbar-top,
 .client-toolbar-view { bottom: auto; height: {{ toolbar-height }}; }
 
+
+.qnject-main-view-has-errors .client-toolbar-view { height: 10em; }
+.qnject-main-view-has-errors .bsp-root-view {  top: 10em; }
 
 .address { display:inline-block; border-bottom: 0.2em dotted; font-style: italic; cursor: pointer; }
 .address:hover { border-bottom-style: solid; }
