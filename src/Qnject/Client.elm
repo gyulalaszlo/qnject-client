@@ -29,7 +29,7 @@ import Html.Events exposing (onClick)
 import Http
 import Html.Attributes exposing (class)
 import Qnject.Connection as Connection
-import Qnject.ViewerEffects exposing (ViewerEffect(OpenObjectView))
+import Qnject.ViewerEffects exposing (ViewerEffect(OpenObjectView, TriggerAction))
 import Qnject.Viewers exposing (bspTraits)
 import Qnject.Viewers.QAppView
 import Qnject.Qobject exposing (..)
@@ -193,6 +193,9 @@ onEffects effects model =
                 [ sendMsg OnOpenObjectView address
                 , sendMsg (ConnectionMsg << Connection.AddObject) address
                 ])
+
+        TriggerAction address ->
+            (model, sendMsg (ConnectionMsg << Connection.TriggerAction) address)
 
 
 sendMsg : (a -> Msg) -> a -> Cmd Msg

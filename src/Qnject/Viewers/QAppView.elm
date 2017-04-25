@@ -16,6 +16,7 @@ import Effects exposing (Effects)
 import Html exposing (Html, div, span, text)
 import Html.Attributes exposing (class, for, type_, value)
 import Html.Events exposing (onClick, onInput)
+import Html.Keyed
 import Qnject.Qobject exposing (Address, QApp, QObjectSummary)
 import Qnject.Connection as Connection
 import Qnject.ViewerEffects exposing (ViewerEffect(OpenObjectView))
@@ -54,7 +55,7 @@ objectsMatching { searchString } objs =
     case searchString of
         Nothing -> objs
         Just s ->
-            let rx = Regex.regex s
+            let rx = Regex.regex s |> Regex.caseInsensitive
                 matches ss = Regex.contains rx ss
                 flt ss =
                     matches ss.objectName ||
@@ -193,7 +194,7 @@ objectsView model objs =
                 [ 
                 ]
 
-            , Html.tbody [] <| List.map (qobjectTableRow model) objs
+            , Html.Keyed.node "tbody" [] <| List.map (qobjectTableRow model) objs
             ]
         ]
 
@@ -213,8 +214,9 @@ objectsViewCss = """
 
 {-| qobject table row
 -}
-qobjectTableRow : Model -> QObjectSummary -> Html Msg
+qobjectTableRow : Model -> QObjectSummary -> (String, Html Msg)
 qobjectTableRow  model obj =
+    (obj.address,
     Html.tr
         [ class "qobject-table-row"
         , class <| "qobject-kind-" ++ toString obj.objectKind
@@ -223,7 +225,7 @@ qobjectTableRow  model obj =
         , Html.td [ class "object-name" ] [ text obj.objectName ]
         , Html.td [ class "class-name"] [ text obj.className ]
         , Html.td [ class "super-class" ] [ text obj.superClass ]
-        ]
+        ])
 
 {-| CSS parts for qobjectTableRow
 -}

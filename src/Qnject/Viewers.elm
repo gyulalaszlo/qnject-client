@@ -114,8 +114,8 @@ update msg model =
              in (QObjectOverview cm, Cmd.map (model.msg << QnjectQObjectOverviewMsg) cc, Effects.none)
 
         (QMenuViewMsg msg, QMenuView m) ->
-             let (cm, cc) = QMenuView.update msg m
-             in (QMenuView cm, Cmd.map (model.msg << QMenuViewMsg) cc, Effects.none)
+             let (cm, cc, ce) = QMenuView.update msg m
+             in (QMenuView cm, Cmd.map (model.msg << QMenuViewMsg) cc, ce)
 
         _ -> (local, Cmd.none, Effects.none)
 

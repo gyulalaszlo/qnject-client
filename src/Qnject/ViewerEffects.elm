@@ -6,4 +6,5 @@ import Qnject.Qobject exposing (Address)
 
 type ViewerEffect
     = OpenObjectView Address
+    | TriggerAction Address
 

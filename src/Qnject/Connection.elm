@@ -62,6 +62,9 @@ type Msg
     | ReloadMainMenu
     | OnReloadMainMenu (Result Http.Error QMainMenus)
 
+    | TriggerAction Address
+    | OnActionTriggered Address (Result Http.Error String)
+
 
 
 url : String -> Model -> String
@@ -119,3 +122,15 @@ update msg model =
 
         OnReloadMainMenu (Err err) ->
             ({ model | mainMenu = Nothing, requestError = Just err }, Cmd.none)
+
+        TriggerAction addr ->
+            (model, Http.send
+                (OnActionTriggered addr)
+                (Http.getString <| url ("/qwidgets/by-address-unsafe/trigger/" ++ addr) model))
+
+        OnActionTriggered addr (Ok s) ->
+            let triggerReply = Debug.log "Trigger reply:" s
+            in ({ model | requestError = Nothing }, Cmd.none)
+
+        OnActionTriggered addr (Err err) ->
+            ({ model | requestError = Just err }, Cmd.none)
