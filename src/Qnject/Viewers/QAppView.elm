@@ -14,11 +14,13 @@ module Qnject.Viewers.QAppView exposing
 
 import Effects exposing (Effects)
 import Html exposing (Html, div, span, text)
-import Html.Attributes exposing (class)
-import Html.Events exposing (onClick)
+import Html.Attributes exposing (class, for, type_, value)
+import Html.Events exposing (onClick, onInput)
 import Qnject.Qobject exposing (Address, QApp, QObjectSummary)
 import Qnject.Connection as Connection
 import Qnject.ViewerEffects exposing (ViewerEffect(OpenObjectView))
+import Regex
+
 
 
 
@@ -26,13 +28,13 @@ import Qnject.ViewerEffects exposing (ViewerEffect(OpenObjectView))
 
 
 type alias Model =
-    {
+    { searchString: Maybe String
     }
 
 
 initialModel : Model
 initialModel =
-    {
+    { searchString = Nothing
     }
 
 
@@ -45,11 +47,36 @@ contextFrom : Model -> Connection.Model -> Context
 contextFrom = Context
 
 
+-- MATCHING --------------------------------------------------------------------
+
+objectsMatching : Model -> List QObjectSummary -> List QObjectSummary
+objectsMatching { searchString } objs =
+    case searchString of
+        Nothing -> objs
+        Just s ->
+            let rx = Regex.regex s
+                matches ss = Regex.contains rx ss
+                flt ss =
+                    matches ss.objectName ||
+                    matches ss.className ||
+                    matches ss.address
+
+            in List.filter flt objs
+
+
+matchingSearch : Context -> List QObjectSummary
+matchingSearch { model, connection } =
+    connection.app
+        |> Maybe.map .widgets
+        |> Maybe.withDefault []
+        |> objectsMatching model
+
 -- MSG
 
 
 type Msg
     = OpenAddress Address
+    | SetSearchString String
 
 
 
@@ -70,6 +97,11 @@ update msg model =
     case msg of
         OpenAddress addr -> (model, Cmd.none, Effects.from <| OpenObjectView addr)
 
+        SetSearchString str ->
+            let newS = if String.isEmpty str then Nothing else Just str
+            in ({model | searchString = newS}, Cmd.none, Effects.none)
+
+
 
 -- VIEW
 
@@ -81,7 +113,7 @@ view {model, connection} =
         Just app ->
             div [ class "QAppView-view" ]
                 [ headerView model app
-                , objectsView model app.widgets
+                , objectsView model (objectsMatching model app.widgets)
                 ]
 
 
@@ -95,7 +127,8 @@ view {model, connection} =
 headerView : Model -> QApp -> Html Msg
 headerView model app =
     div [ class "header-view" ]
-        [ span [ class "app-name" ] [ text app.appName ]
+        [ searchBox model
+        , span [ class "app-name" ] [ text app.appName ]
         , text " "
         , span [ class "address" ] [ text app.address ]
         , text " "
@@ -115,6 +148,34 @@ headerViewCss = """
 .header-view .app-name { display:inline-block; }
 .header-view .app-name:before { content: "Application: " }
 """
+
+
+-- VIEW: searchBox
+
+
+
+{-| search box
+-}
+searchBox : Model -> Html Msg
+searchBox model =
+    let searchValue = model.searchString |> Maybe.withDefault ""
+    in div [ class "search-box" ]
+        [ Html.label [ class "search-label" ] [ text "Search:" ]
+        , Html.input
+            [ type_ "text"
+            , value searchValue
+            , onInput SetSearchString] []
+        ]
+
+{-| CSS parts for searchBox
+-}
+searchBoxCss : String
+searchBoxCss = """
+.search-box {  }
+"""
+
+
+
 
 
 
